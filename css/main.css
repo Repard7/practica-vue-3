@@ -25,13 +25,15 @@
     text-align: center;
 }
 
-.task {
+.task>div {
+    display: flex;
+    flex-direction: column;
+    row-gap: 15px;
     border: 1px black solid;
     padding: 5px;
 }
 
 .task>input {
-    margin-top: 15px;
     height: 20px;
     font-size: 14px;
 }

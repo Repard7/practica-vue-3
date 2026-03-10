@@ -13,25 +13,25 @@ Vue.component('kanban-board', {
             <div class="columns">
                 <div class="column">
                     <h3>Запланированные задачи</h3>
-                    <task v-for="task in firstColumn" :key="task.id"
+                    <task v-for="(task, index) in firstColumn" :key="task.id" :task="task" :column-index="0" :task-id="task.id"
                         @update-task="updateTask" @move-to-target-column="moveToTargetColumn" @remove-task="removeTask"
                     ></task>
                 </div>
                 <div class="column">
                     <h3>Задачи в работе</h3>
-                    <task v-for="task in secondColumn" :key="task.id"
+                    <task v-for="(task, index) in secondColumn" :key="task.id" :task="task" :column-index="1" :task-id="task.id"
                         @update-task="updateTask" @move-to-target-column="moveToTargetColumn" @remove-task="removeTask"
                     ></task>
                 </div>
                 <div class="column">
                     <h3>Тестирование</h3>
-                    <task v-for="task in thirdColumn" :key="task.id"
+                    <task v-for="(task, index) in thirdColumn" :key="task.id" :task="task" :column-index="2" :task-id="task.id"
                         @update-task="updateTask" @move-to-target-column="moveToTargetColumn" @remove-task="removeTask"
                     ></task>
                 </div>
                 <div class="column">
                     <h3>Выполненные задачи</h3>
-                    <task v-for="task in fourthColumn" :key="task.id"
+                    <task v-for="(task, index) in fourthColumn" :key="task.id" :task="task" :column-index="3" :task-id="task.id"
                         @update-task="updateTask" @move-to-target-column="moveToTargetColumn" @remove-task="removeTask"
                     ></task>
                 </div>
@@ -42,9 +42,11 @@ Vue.component('kanban-board', {
         appendTaskInFirstColumn() {
             const task = {
                 id: Date.now() + Math.random(),
+                createAt: Date.now(),
+                updateAt: Date.now(),
                 title: null,
                 description: null,
-                deadLine: null
+                deadline: null
             }
             this.firstColumn.push(task)
         },
@@ -54,7 +56,9 @@ Vue.component('kanban-board', {
             const currentColumn = this.getColumnByIndex(columnIndex);
             const taskIndex = currentColumn.findIndex(c => c.id === taskId)
 
+            if (taskIndex === -1) return;
             this.$set(currentColumn[taskIndex], field, value)
+            this.$set(currentColumn[taskIndex], 'updateAt', Date.now());
         },
 
         moveToTargetColumn(data) {
@@ -63,9 +67,11 @@ Vue.component('kanban-board', {
             const currentColumn = this.getColumnByIndex(currentColumnIndex);
             const taskIndex = currentColumn.findIndex(c => c.id === taskId);
 
+            if (taskIndex === -1) return;
+            const task = currentColumn[taskIndex];
+
             currentColumn.splice(taskIndex, 1);
 
-            const task = currentColumn[taskIndex];
             const targetColumn = this.getColumnByIndex(targetColumnIndex);
             targetColumn.push(task);
 
@@ -73,15 +79,15 @@ Vue.component('kanban-board', {
         },
 
         removeTask(data) {
-            const {currentColumnIndex, taskId} = data;
+            const { currentColumnIndex, taskId } = data;
 
-            currentColumn = this.getColumn(currentColumnIndex);
+            const currentColumn = this.getColumnByIndex(currentColumnIndex);
             const taskIndex = currentColumn.findIndex(c => c.id === taskId);
 
             currentColumn.splice(taskIndex, 1)
         },
 
-        getColumn(columnIndex) {
+        getColumnByIndex(columnIndex) {
             switch (columnIndex) {
                 case 0: return this.firstColumn;
                 case 1: return this.secondColumn;
@@ -102,7 +108,7 @@ Vue.component('task', {
             required: true
         },
 
-        card: {
+        task: {
             type: Object,
             required: true
         },
@@ -110,51 +116,44 @@ Vue.component('task', {
         columnIndex: {
             type: Number,
             required: true
-        },
-
-        cardIndex: {
-            type: Number,
-            required: true
-        },
-
-        fulledSecondColumn: {
-            type: Boolean,
-            required: true
         }
     },
     template: `
-        <div class="task" v-show="columnIndex==0">
-            <input type="text" placeholder="Заголовок" :value="task.title" @input="updateTitle($event.target.value)">
-            <input type="text" placeholder="Описание" :value="task.description" @input="updateDescription($event.target.value)">
-            <input type="date" placeholder="Дедлайн" :value="task.deadline" @input="updateDeadline($event.target.value)">
-            <button @click="removeTask" >Удалить</button>
-            <b>{{formattedLastCompletedAt}}</b>
-            <button @click="moveToTargetColumn(1)" >(---)</button>
-        </div>
+        <div class="task">
+            <div v-if="columnIndex === 0">
+                <input type="text" placeholder="Заголовок" :value="task.title" @input="updateTitle($event.target.value)">
+                <input type="text" placeholder="Описание" :value="task.description" @input="updateDescription($event.target.value)">
+                <input type="date" placeholder="Дедлайн" :value="task.deadline" @input="updateDeadline($event.target.value)">
+                <button @click="removeTask" >Удалить</button>
+                <b>{{formattedUpdateAt}}</b>
+                <button @click="moveToTargetColumn(1)" >Вперед</button>
+            </div>
     
-        <div class="task" v-show="columnIndex==1">
-            <input type="text" placeholder="Заголовок" :value="task.title" @input="updateTitle($event.target.value)">
-            <input type="text" placeholder="Описание" :value="task.description" @input="updateDescription($event.target.value)">
-            <b>{{task.deadline}}</b>
-            <b>{{formattedLastCompletedAt}}</b>
-            <button @click="moveToTargetColumn(2)" >(---)</button>
+            <div v-else-if="columnIndex === 1">
+                <input type="text" placeholder="Заголовок" :value="task.title" @input="updateTitle($event.target.value)">
+                <input type="text" placeholder="Описание" :value="task.description" @input="updateDescription($event.target.value)">
+                <b>{{task.deadline}}</b>
+                <b>{{formattedUpdateAt}}</b>
+                <button @click="moveToTargetColumn(2)" >Вперед</button>
+            </div>
+
+            <div v-else-if="columnIndex === 2">
+                <input type="text" placeholder="Заголовок" :value="task.title" @input="updateTitle($event.target.value)">
+                <input type="text" placeholder="Описание" :value="task.description" @input="updateDescription($event.target.value)">
+                <b>{{task.deadline}}</b>
+                <b>{{formattedUpdateAt}}</b>
+                <button @click="moveToTargetColumn(1)" >Вернуть</button>
+                <button @click="moveToTargetColumn(3)" >Вперед</button>
+            </div>
+
+            <div v-else-if="columnIndex === 3">
+                <p>{{task.title}}</p>
+                <p>{{task.description}}</p>
+                <p>{{task.deadline}}</p>
+                <b>{{meetingDeadline}}</b>
+            </div>
         </div>
 
-        <div class="task" v-show="columnIndex==2">
-            <input type="text" placeholder="Заголовок" :value="task.title" @input="updateTitle($event.target.value)">
-            <input type="text" placeholder="Описание" :value="task.description" @input="updateDescription($event.target.value)">
-            <b>{{task.deadline}}</b>
-            <b>{{formattedLastCompletedAt}}</b>
-            <button @click="moveToTargetColumn(1)" >(---)</button>
-            <button @click="moveToTargetColumn(3)" >(---)</button>
-        </div>
-
-        <div class="task" v-show="columnIndex==3">
-            <p>{{task.title}}</p>
-            <p>{{task.description}}</p>
-            <p>{{task.deadline}}</p>
-            <b>{{meetingDeadline}}</b>
-        </div>
     `,
     methods: {
         updateTitle(newTitle) {
@@ -197,9 +196,20 @@ Vue.component('task', {
                 currentColumnIndex: this.columnIndex,
                 taskId: this.taskId
             })
-        }
+        },
+
     },
+    //Не забыть добавить указание причины возврата из 3-го в 4-тый столбцы
     computed: {
+        meetingDeadline() {
+            if (!this.task.deadline) return '';
+            return new Date(this.task.deadline) < new Date() ? 'Просрочено' : 'В срок';
+        },
+
+        formattedUpdateAt() {
+            if (!this.task.updateAt) return '';
+            return new Date(this.task.updateAt).toLocaleString('ru-RU');
+        }
     }
 })
 
