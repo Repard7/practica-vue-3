@@ -8,7 +8,7 @@
 .columns {
     display: flex;
     justify-content: center;
-    width: 80%;
+    width: 90%;
     margin: 0 auto;
 }
 
@@ -25,21 +25,78 @@
     text-align: center;
 }
 
+.task {
+    width: 110%;
+}
+
 .task>div {
     display: flex;
     flex-direction: column;
     row-gap: 15px;
-    border: 1px black solid;
-    padding: 5px;
+    border: 1px solid black;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
 }
 
-.task>input {
-    height: 20px;
+.task>div>div {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    align-items: center;
+}
+
+.task>div>div>input {
+    flex: 1;
+    min-width: 0;
+}
+
+.task input {
+    height: 30px;
     font-size: 14px;
+    padding: 4px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+.task button {
+    height: 36px;
+    padding: 0 12px;
+    font-size: 14px;
+    border: none;
+    border-radius: 4px;
+    background-color: #1E95EA;
+    color: white;
+    cursor: pointer;
+}
+
+.task button:hover {
+    background-color: #0f7ac6;
+}
+
+.task p {
+    margin: 0;
+    text-align: left;
+}
+
+.task label {
+    font-weight: bold;
+    margin-bottom: 4px;
+    text-align: left;
 }
 
 .appendTaskButton {
     width: 300px;
     height: 40px;
     font-size: 20px;
+    border: none;
+    border-radius: 4px;
+    background-color: #1E95EA;
+    color: white;
+    cursor: pointer;
+}
+
+.appendTaskButton:hover {
+    background-color: #0f7ac6;
 }

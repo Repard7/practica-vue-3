@@ -46,7 +46,8 @@ Vue.component('kanban-board', {
                 updateAt: Date.now(),
                 title: null,
                 description: null,
-                deadline: null
+                deadline: null,
+                reasonReturn: null
             }
             this.firstColumn.push(task)
         },
@@ -120,40 +121,44 @@ Vue.component('task', {
     },
     template: `
         <div class="task">
-            <div v-if="columnIndex === 0">
-                <input type="text" placeholder="Заголовок" :value="task.title" @input="updateTitle($event.target.value)">
-                <input type="text" placeholder="Описание" :value="task.description" @input="updateDescription($event.target.value)">
-                <input type="date" placeholder="Дедлайн" :value="task.deadline" @input="updateDeadline($event.target.value)">
-                <button @click="removeTask" >Удалить</button>
-                <b>{{formattedUpdateAt}}</b>
-                <button @click="moveToTargetColumn(1)" >Вперед</button>
+            <div v-if="columnIndex < 3">
+                <label for="title">Заголовок</label>
+                <input id="title" type="text" placeholder="Заголовок" :value="task.title" @input="updateTitle($event.target.value)">
+                <label for="description">Описание</label>
+                <input id="description" type="text" placeholder="Описание" :value="task.description" @input="updateDescription($event.target.value)">
             </div>
-    
+
+            <div v-if="columnIndex === 0">
+                <label for="deadline">Дедлайн</label>
+                <input id="deadline" type="date" placeholder="Дедлайн" :value="task.deadline" @input="updateDeadline($event.target.value)">
+                <button @click="removeTask">Удалить</button>
+                <button @click="moveToTargetColumn(1)">Вперед</button>
+            </div>
+
             <div v-else-if="columnIndex === 1">
-                <input type="text" placeholder="Заголовок" :value="task.title" @input="updateTitle($event.target.value)">
-                <input type="text" placeholder="Описание" :value="task.description" @input="updateDescription($event.target.value)">
-                <b>{{task.deadline}}</b>
-                <b>{{formattedUpdateAt}}</b>
-                <button @click="moveToTargetColumn(2)" >Вперед</button>
+                <p v-if="task.deadline">Дедлайн: {{task.deadline}}</p>
+                <p v-if="task.reasonReturn">Причина возврата: {{task.reasonReturn}}</p>
+                <button @click="moveToTargetColumn(2)">Вперед</button>
             </div>
 
             <div v-else-if="columnIndex === 2">
-                <input type="text" placeholder="Заголовок" :value="task.title" @input="updateTitle($event.target.value)">
-                <input type="text" placeholder="Описание" :value="task.description" @input="updateDescription($event.target.value)">
-                <b>{{task.deadline}}</b>
-                <b>{{formattedUpdateAt}}</b>
-                <button @click="moveToTargetColumn(1)" >Вернуть</button>
-                <button @click="moveToTargetColumn(3)" >Вперед</button>
+                <p v-if="task.deadline">Дедлайн: {{task.deadline}}</p>
+                <div>
+                    <button @click="moveToTargetColumn(1)">Вернуть</button>
+                    <input type="text" placeholder="Причина возврата" :value="task.reasonReturn" @input="updateReasonReturn($event.target.value)">
+                </div>
+                <button @click="moveToTargetColumn(3)">Вперед</button>
             </div>
 
             <div v-else-if="columnIndex === 3">
-                <p>{{task.title}}</p>
-                <p>{{task.description}}</p>
-                <p>{{task.deadline}}</p>
-                <b>{{meetingDeadline}}</b>
+                <p>Заголовок: {{task.title}}</p>
+                <p>Описание: {{task.description}}</p>
+                <p v-if="task.deadline">Дедлайн: {{task.deadline}}</p>
+                <b v-if="meetingDeadline">Статус: {{meetingDeadline}}</b>
             </div>
-        </div>
 
+            <b v-if="columnIndex !== 3">Редактировано: {{formattedUpdateAt}}</b>
+        </div>
     `,
     methods: {
         updateTitle(newTitle) {
@@ -181,6 +186,16 @@ Vue.component('task', {
                 field: 'deadline',
                 value: newDeadLine
             })
+        },
+
+        updateReasonReturn(newReasonReturn) {
+            this.$emit('update-task', {
+                columnIndex: this.columnIndex,
+                taskId: this.taskId,
+                field: 'reasonReturn',
+                value: newReasonReturn
+            })
+
         },
 
         moveToTargetColumn(targetColumnIndex) {
