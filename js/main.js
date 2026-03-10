@@ -77,7 +77,7 @@ Vue.component('kanban-board', {
 
             currentColumn = this.getColumn(currentColumnIndex);
             const taskIndex = currentColumn.findIndex(c => c.id === taskId);
-            
+
             currentColumn.splice(taskIndex, 1)
         },
 
@@ -94,9 +94,6 @@ Vue.component('kanban-board', {
     },
     computed: {
     }
-    //Можно сделать также наследник под название task а в нем уже в шаблоне
-    //бахнуть 4 дива в которых будет проверка на то, в каком столбце (этапе) находится задача
-    //и в зависимости от этого менять контент
 })
 Vue.component('task', {
     props: {
