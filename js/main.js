@@ -214,7 +214,6 @@ Vue.component('task', {
         },
 
     },
-    //Не забыть добавить указание причины возврата из 3-го в 4-тый столбцы
     computed: {
         meetingDeadline() {
             if (!this.task.deadline) return '';
