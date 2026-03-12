@@ -1,104 +1,232 @@
+/* Основные настройки */
 .kanban-board {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    gap: 30px;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* Контейнер колонок */
 .columns {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
-    width: 90%;
+    gap: 20px;
+    width: 100%;
+    max-width: 1400px;
     margin: 0 auto;
 }
 
+/* Колонка */
 .column {
+    flex: 1 1 250px; /* растягиваются, минимальная ширина 250px */
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    border-radius: 10px;
-    align-items: center;
-    padding: 0 50px 50px 50px;
-    margin: 0 50px;
-    width: 20%;
-    box-sizing: border-box;
-    border: black 2px solid;
+    gap: 15px;
+    background-color: #ffffff;
+    border: 2px solid #000000;
+    border-radius: 12px;
+    padding: 20px 15px 30px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.2s ease;
+}
+
+.column:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Заголовок колонки */
+.column h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.3rem;
+    font-weight: 600;
     text-align: center;
+    border-bottom: 2px solid #1E95EA;
+    padding-bottom: 8px;
+    color: #333;
 }
 
+/* Карточка задачи */
 .task {
-    width: 110%;
+    width: 100%;
 }
 
-.task>div {
+.task > div {
     display: flex;
     flex-direction: column;
-    row-gap: 15px;
-    border: 1px solid black;
-    border-radius: 10px;
-    padding: 10px;
+    gap: 12px;
     background-color: #f9f9f9;
-    border-radius: 4px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    transition: transform 0.1s ease, box-shadow 0.2s ease;
 }
 
-.task>div>div {
+.task > div:hover {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Текстовые поля задачи */
+.task p {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    color: #333;
+    word-break: break-word;
+}
+
+.task p:first-of-type {
+    font-weight: 500;
+}
+
+/* Блок для возврата (причина и кнопка) */
+.task > div > div {
     display: flex;
-    flex-direction: row;
+    flex-wrap: wrap;
     gap: 10px;
     align-items: center;
+    margin-top: 5px;
 }
 
-.task>div>div>input {
-    flex: 1;
+.task > div > div input {
+    flex: 1 1 150px;
     min-width: 0;
-}
-
-.task input {
-    height: 30px;
-    font-size: 14px;
-    padding: 4px 8px;
+    height: 36px;
+    padding: 0 10px;
+    font-size: 0.9rem;
     border: 1px solid #ccc;
-    border-radius: 4px;
+    border-radius: 6px;
     box-sizing: border-box;
 }
 
+/* Кнопки внутри задачи */
 .task button {
     height: 36px;
-    padding: 0 12px;
-    font-size: 14px;
+    padding: 0 15px;
+    font-size: 0.9rem;
+    font-weight: 500;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     background-color: #1E95EA;
     color: white;
     cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s;
 }
 
 .task button:hover {
     background-color: #0f7ac6;
 }
 
-.task p {
-    margin: 0;
-    text-align: left;
+.task button:active {
+    transform: scale(0.97);
 }
 
-.task label {
-    font-weight: bold;
-    margin-bottom: 4px;
-    text-align: left;
+/* Статус задачи (просрочено/в срок) */
+.task b:last-of-type {
+    font-size: 0.85rem;
+    color: #666;
+    text-align: right;
+    margin-top: 5px;
 }
 
-.appendTaskButton {
-    width: 300px;
+.task b:first-of-type {
+    color: #1E95EA;
+    font-weight: 600;
+}
+
+/* Общие стили для форм */
+.createForm, .editForm {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid #eee;
+    box-sizing: border-box;
+}
+
+/* Форма создания — широкая */
+.createForm {
+    max-width: 500px;
+    padding: 25px;
+}
+
+/* Форма редактирования — компактная, для размещения внутри карточки */
+.editForm {
+    max-width: 100%;
+    padding: 15px;
+    margin-bottom: 10px;
+}
+
+/* Поля ввода в формах */
+.createForm input,
+.editForm input {
+    width: 100%;
     height: 40px;
-    font-size: 20px;
+    padding: 0 12px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.createForm input:focus,
+.editForm input:focus {
+    border-color: #1E95EA;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(30, 149, 234, 0.1);
+}
+
+/* Стили для кнопок внутри форм */
+.createForm button,
+.editForm button {
+    height: 40px;
+    font-size: 1rem;
+    font-weight: 500;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     background-color: #1E95EA;
     color: white;
     cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s;
+}
+
+.createForm button:hover,
+.editForm button:hover {
+    background-color: #0f7ac6;
+}
+
+.createForm button:active,
+.editForm button:active {
+    transform: scale(0.98);
+}
+
+/* Кнопка создания задачи (общая) — если используется отдельно от формы */
+.appendTaskButton {
+    width: 300px;
+    max-width: 100%;
+    height: 48px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    background-color: #1E95EA;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s;
 }
 
 .appendTaskButton:hover {
     background-color: #0f7ac6;
+}
+
+.appendTaskButton:active {
+    transform: scale(0.98);
 }

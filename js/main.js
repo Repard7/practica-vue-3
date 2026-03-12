@@ -1,107 +1,154 @@
 Vue.component('kanban-board', {
     data() {
         return {
-            firstColumn: [],
-            secondColumn: [],
-            thirdColumn: [],
-            fourthColumn: []
+            columns: [
+                { values: [], title: "Запланированные задачи" },
+                { values: [], title: "Задачи в работе" },
+                { values: [], title: "Тестирование" },
+                { values: [], title: "Выполненные задачи" }
+            ]
         }
     },
     template: `
         <div class="kanban-board">
-            <button class="appendTaskButton" @click="appendTaskInFirstColumn">Запланировать задачу</button>
+            <createForm @append-new-task="appendNewTaskColumn"></createForm>
+
             <div class="columns">
-                <div class="column">
-                    <h3>Запланированные задачи</h3>
-                    <task v-for="(task, index) in firstColumn" :key="task.id" :task="task" :column-index="0" :task-id="task.id"
-                        @update-task="updateTask" @move-to-target-column="moveToTargetColumn" @remove-task="removeTask"
-                    ></task>
-                </div>
-                <div class="column">
-                    <h3>Задачи в работе</h3>
-                    <task v-for="(task, index) in secondColumn" :key="task.id" :task="task" :column-index="1" :task-id="task.id"
-                        @update-task="updateTask" @move-to-target-column="moveToTargetColumn" @remove-task="removeTask"
-                    ></task>
-                </div>
-                <div class="column">
-                    <h3>Тестирование</h3>
-                    <task v-for="(task, index) in thirdColumn" :key="task.id" :task="task" :column-index="2" :task-id="task.id"
-                        @update-task="updateTask" @move-to-target-column="moveToTargetColumn" @remove-task="removeTask"
-                    ></task>
-                </div>
-                <div class="column">
-                    <h3>Выполненные задачи</h3>
-                    <task v-for="(task, index) in fourthColumn" :key="task.id" :task="task" :column-index="3" :task-id="task.id"
-                        @update-task="updateTask" @move-to-target-column="moveToTargetColumn" @remove-task="removeTask"
-                    ></task>
-                </div>
+                <column v-for="(column, columnIndex) in columns" :key="columnIndex" :column="column"
+                    :column-index="columnIndex" class="column" @update-column="updateColumn"
+                    @move-task-to-target-column="moveTaskToTargetColumn"
+                ></column>
             </div>
         </div>
     `,
     methods: {
-        appendTaskInFirstColumn() {
-            const task = {
-                id: Date.now() + Math.random(),
-                createAt: Date.now(),
-                updateAt: Date.now(),
-                title: null,
-                description: null,
-                deadline: null,
-                reasonReturn: null
-            }
-            this.firstColumn.push(task)
+        appendNewTaskColumn(task) {
+            this.columns[0].values.push(task);
         },
 
-        updateTask(changedData) {
-            const { columnIndex, taskId, field, value } = changedData;
-            const currentColumn = this.getColumnByIndex(columnIndex);
-            const taskIndex = currentColumn.findIndex(c => c.id === taskId)
-
-            if (taskIndex === -1) return;
-            this.$set(currentColumn[taskIndex], field, value)
-            this.$set(currentColumn[taskIndex], 'updateAt', Date.now());
+        updateColumn(column, columnIndex) {
+            this.columns.splice(columnIndex, 1, column);
         },
 
-        moveToTargetColumn(data) {
-            const { currentColumnIndex, targetColumnIndex, taskId } = data;
+        moveTaskToTargetColumn(task, taskIndex, currentColumnIndex, targetColumnIndex) {
+            const currentColumn = this.columns[currentColumnIndex];
+            const targetColumn = this.columns[targetColumnIndex];
 
-            const currentColumn = this.getColumnByIndex(currentColumnIndex);
-            const taskIndex = currentColumn.findIndex(c => c.id === taskId);
-
-            if (taskIndex === -1) return;
-            const task = currentColumn[taskIndex];
-
-            currentColumn.splice(taskIndex, 1);
-
-            const targetColumn = this.getColumnByIndex(targetColumnIndex);
-            targetColumn.push(task);
-
-
+            currentColumn.values.splice(taskIndex, 1);
+            targetColumn.values.push(task);
         },
-
-        removeTask(data) {
-            const { currentColumnIndex, taskId } = data;
-
-            const currentColumn = this.getColumnByIndex(currentColumnIndex);
-            const taskIndex = currentColumn.findIndex(c => c.id === taskId);
-
-            currentColumn.splice(taskIndex, 1)
-        },
-
-        getColumnByIndex(columnIndex) {
-            switch (columnIndex) {
-                case 0: return this.firstColumn;
-                case 1: return this.secondColumn;
-                case 2: return this.thirdColumn;
-                case 3: return this.fourthColumn;
-            }
-        }
 
 
     },
     computed: {
     }
 })
+
+Vue.component('createForm', {
+    props: {
+    },
+
+    data() {
+        return {
+            title: '',
+
+            description: '',
+
+            deadline: ''
+        }
+    },
+
+    template: `
+        <form class="createForm" @submit.prevent="onSubmitCreateForm">
+            <label for="title">Заголовок</label>
+            <input id="title" required type="text" placeholder="Заголовок" v-model="title">
+            <label for="description">Описание</label>
+            <input id="description" required type="text" placeholder="Описание" v-model="description">
+            <label for="deadline">Дедлайн</label>
+            <input id="deadline" required type="date" placeholder="Дедлайн" v-model="deadline">
+            <button type="submit">Создать</button>
+        </form>
+    `,
+    methods: {
+        onSubmitCreateForm() {
+            this.$emit('append-new-task', this.taskByData)
+            this.title = '';
+            this.description = '';
+            this.deadline = '';
+        }
+    },
+    computed: {
+        taskByData() {
+            return {
+                id: Date.now() + Math.random(),
+                createAt: Date.now(),
+                updateAt: Date.now(),
+                title: this.title,
+                description: this.description,
+                deadline: this.deadline,
+                reasonReturn: null
+            }
+        }
+    }
+})
+
+Vue.component('column', {
+    props: {
+
+        column: {
+            type: Object,
+            required: true
+        },
+
+        columnIndex: {
+            type: Number,
+            required: true
+        }
+
+    },
+    template: `
+        <div class="column">
+            <h3>{{column.title}}</h3>
+            <task v-for="(task, index) in column.values"
+                :key="task.id" :task="task" :column-index="columnIndex" :task-id="task.id"
+                @update-task="updateTask" @move-to-target-column="moveToTargetColumn" @remove-task="removeTask"
+            ></task>
+        </div>
+    `,
+    methods: {
+        updateTask(editdData) {
+            const { taskId, field, value } = editdData;
+            const taskIndex = this.column.values.findIndex(c => c.id === taskId)
+
+            if (taskIndex === -1) return;
+            this.$set(this.column.values[taskIndex], field, value)
+            this.$set(this.column.values[taskIndex], 'updateAt', Date.now());
+            this.$emit('update-column', this.column, this.columnIndex)
+        },
+
+        removeTask(taskId) {
+            const taskIndex = this.column.values.findIndex(c => c.id === taskId);
+
+            this.column.values.splice(taskIndex, 1)
+
+            this.$emit('update-column', this.column, this.columnIndex)
+        },
+
+        moveToTargetColumn(targetColumnIndex, taskId) {
+            const taskIndex = this.column.values.findIndex(c => c.id === taskId);
+
+            if (taskIndex === -1) return;
+
+            const task = this.column.values[taskIndex];
+
+            this.$emit('move-task-to-target-column', task, taskIndex, this.columnIndex, targetColumnIndex)
+
+        },
+    },
+    computed: {
+    }
+})
+
 Vue.component('task', {
     props: {
         taskId: {
@@ -119,78 +166,46 @@ Vue.component('task', {
             required: true
         }
     },
+
+    data() {
+        return {
+            showEditForm: false
+        }
+    },
+
     template: `
         <div class="task">
-            <div v-if="columnIndex < 3">
-                <label for="title">Заголовок</label>
-                <input id="title" type="text" placeholder="Заголовок" :value="task.title" @input="updateTitle($event.target.value)">
-                <label for="description">Описание</label>
-                <input id="description" type="text" placeholder="Описание" :value="task.description" @input="updateDescription($event.target.value)">
-            </div>
+            <editForm :task="task" :column-index="columnIndex" :show-edit-form="showEditForm" @edit-task="editTask"></editForm>
+            <div>
+                <p>Заголовок: {{task.title}}</p>
+                <p>Описание: {{task.description}}</p>
+                <p>Дедлайн: {{task.deadline}}</p>
 
-            <div v-if="columnIndex === 0">
-                <label for="deadline">Дедлайн</label>
-                <input id="deadline" type="date" placeholder="Дедлайн" :value="task.deadline" @input="updateDeadline($event.target.value)">
-                <button @click="removeTask">Удалить</button>
-                <button @click="moveToTargetColumn(1)">Вперед</button>
-            </div>
+                <p v-if="task.reasonReturn && columnIndex === 1">Причина возврата: {{task.reasonReturn}}</p>
 
-            <div v-else-if="columnIndex === 1">
-                <p v-if="task.deadline">Дедлайн: {{task.deadline}}</p>
-                <p v-if="task.reasonReturn">Причина возврата: {{task.reasonReturn}}</p>
-                <button @click="moveToTargetColumn(2)">Вперед</button>
-            </div>
-
-            <div v-else-if="columnIndex === 2">
-                <p v-if="task.deadline">Дедлайн: {{task.deadline}}</p>
-                <div>
+                <div v-if="columnIndex == 2">
                     <button @click="moveToTargetColumn(1)">Вернуть</button>
                     <input type="text" placeholder="Причина возврата" :value="task.reasonReturn" @input="updateReasonReturn($event.target.value)">
                 </div>
-                <button @click="moveToTargetColumn(3)">Вперед</button>
+
+                <button @click="removeTask" v-if="columnIndex == 0">Удалить</button>
+
+                <button v-if="showEditForm==false && columnIndex !== 3" @click="toggleEditForm">Изменить</button>
+                <button v-if="showEditForm==true && columnIndex !== 3" @click="toggleEditForm">Не изменять</button>
+
+                <button @click="moveToTargetColumn(columnIndex+1)" v-if="columnIndex !== 3">Вперед</button>
+
+                <b v-if="meetingDeadline && columnIndex == 3">Статус: {{meetingDeadline}}</b>
+                
+                <b>Редактировано: {{formattedUpdateAt}}</b>
             </div>
 
-            <div v-else-if="columnIndex === 3">
-                <p>Заголовок: {{task.title}}</p>
-                <p>Описание: {{task.description}}</p>
-                <p v-if="task.deadline">Дедлайн: {{task.deadline}}</p>
-                <b v-if="meetingDeadline">Статус: {{meetingDeadline}}</b>
-            </div>
-
-            <b v-if="columnIndex !== 3">Редактировано: {{formattedUpdateAt}}</b>
         </div>
     `,
     methods: {
-        updateTitle(newTitle) {
-            this.$emit('update-task', {
-                columnIndex: this.columnIndex,
-                taskId: this.taskId,
-                field: 'title',
-                value: newTitle
-            })
-        },
-
-        updateDescription(newDescription) {
-            this.$emit('update-task', {
-                columnIndex: this.columnIndex,
-                taskId: this.taskId,
-                field: 'description',
-                value: newDescription
-            })
-        },
-
-        updateDeadline(newDeadLine) {
-            this.$emit('update-task', {
-                columnIndex: this.columnIndex,
-                taskId: this.taskId,
-                field: 'deadline',
-                value: newDeadLine
-            })
-        },
 
         updateReasonReturn(newReasonReturn) {
             this.$emit('update-task', {
-                columnIndex: this.columnIndex,
                 taskId: this.taskId,
                 field: 'reasonReturn',
                 value: newReasonReturn
@@ -199,19 +214,35 @@ Vue.component('task', {
         },
 
         moveToTargetColumn(targetColumnIndex) {
-            this.$emit('move-to-target-column', {
-                currentColumnIndex: this.columnIndex,
-                targetColumnIndex: targetColumnIndex,
-                taskId: this.taskId
-            })
+            this.$emit('move-to-target-column', targetColumnIndex, this.taskId);
         },
 
         removeTask() {
-            this.$emit('remove-task', {
-                currentColumnIndex: this.columnIndex,
-                taskId: this.taskId
-            })
+            this.$emit('remove-task', this.taskId);
         },
+
+        toggleEditForm() {
+            this.showEditForm = !this.showEditForm
+        },
+
+        editTask(title, description, deadline) {
+            this.$emit('update-task', {
+                taskId: this.taskId,
+                field: 'title',
+                value: title
+            });
+            this.$emit('update-task', {
+                taskId: this.taskId,
+                field: 'description',
+                value: description
+            });
+            this.$emit('update-task', {
+                taskId: this.taskId,
+                field: 'deadline',
+                value: deadline
+            });
+            showEditForm = false;
+        }
 
     },
     computed: {
@@ -227,6 +258,81 @@ Vue.component('task', {
     }
 })
 
+Vue.component('editForm', {
+    props: {
+        task: {
+            type: Object,
+            required: true
+        },
+
+        columnIndex: {
+            type: Number,
+            required: true
+        },
+
+        showEditForm: {
+            type: Boolean,
+            required: true
+        }
+    },
+
+    data() {
+        return {
+            title: '',
+
+            description: '',
+
+            deadline: ''
+        }
+    },
+
+    template: `
+        <form class="editForm" @submit.prevent="onSubmitEditForm" v-if="showEditForm">
+            <label for="title">Заголовок</label>
+            <input id="title" required type="text" placeholder="Заголовок" v-model="title">
+            <label for="description">Описание</label>
+            <input id="description" required type="text" placeholder="Описание" v-model="description">
+            <label v-if="columnIndex==0" for="deadline">Дедлайн</label>
+            <input v-if="columnIndex==0" id="deadline" required type="date" placeholder="Дедлайн" v-model="deadline">
+            <button type="submit">Изменить</button>
+        </form>
+    `,
+    methods: {
+        onSubmitEditForm() {
+            this.$emit('edit-task', this.title, this.description, this.deadline);
+            this.title = '';
+            this.description = '';
+            this.deadline = '';
+        }
+    },
+
+    watch: {
+        showEditForm: {
+            handler(val) {
+                if (val) {
+                    this.title = this.task.title;
+                    this.description = this.task.description;
+                    this.deadline = this.task.deadline;
+                }
+            },
+            immediate: true
+        },
+        task: {
+            handler(newTask) {
+                if (this.showEditForm) {
+                    this.title = newTask.title;
+                    this.description = newTask.description;
+                    this.deadline = newTask.deadline;
+                }
+            },
+            deep: true
+        }
+    },
+
+    computed: {
+
+    }
+})
 let app = new Vue({
     el: '#app',
     data: {
