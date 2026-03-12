@@ -2,26 +2,33 @@ Vue.component('kanban-board', {
     data() {
         return {
             columns: [
-                { values: [], title: "Запланированные задачи" },
-                { values: [], title: "Задачи в работе" },
-                { values: [], title: "Тестирование" },
-                { values: [], title: "Выполненные задачи" }
+                { values: [], title: "Запланированные задачи", show: true },
+                { values: [], title: "Задачи в работе", show: true },
+                { values: [], title: "Тестирование", show: true },
+                { values: [], title: "Выполненные задачи", show: true },
+                { values: [], title: "Архив", show: false }
             ]
         }
     },
     template: `
         <div class="kanban-board">
+            <button @click="toggleVisibleArhive" class="toggle-archive-btn">{{ columns[4].show ? 'Скрыть архив' : 'Показать архив' }}</button>
             <createForm @append-new-task="appendNewTaskColumn"></createForm>
 
             <div class="columns">
                 <column v-for="(column, columnIndex) in columns" :key="columnIndex" :column="column"
                     :column-index="columnIndex" class="column" @update-column="updateColumn"
-                    @move-task-to-target-column="moveTaskToTargetColumn"
+                    @move-task-to-target-column="moveTaskToTargetColumn" v-if="column.show"
                 ></column>
             </div>
         </div>
     `,
     methods: {
+
+        toggleVisibleArhive() {
+            this.$set(this.columns[4], 'show', !this.columns[4].show)
+        },
+
         appendNewTaskColumn(task) {
             this.columns[0].values.push(task);
         },
@@ -31,11 +38,22 @@ Vue.component('kanban-board', {
         },
 
         moveTaskToTargetColumn(task, taskIndex, currentColumnIndex, targetColumnIndex) {
+
+            if (targetColumnIndex == 3 && new Date(task.deadline) < new Date()) {
+                targetColumnIndex = 4
+            }
+
             const currentColumn = this.columns[currentColumnIndex];
             const targetColumn = this.columns[targetColumnIndex];
 
-            currentColumn.values.splice(taskIndex, 1);
-            targetColumn.values.push(task);
+            if (targetColumnIndex !== 3 || targetColumnIndex == 3 && task.notes.every(note => note.checked === true)) {
+                currentColumn.values.splice(taskIndex, 1);
+                targetColumn.values.push(task);
+            }
+            else {
+                return;
+            }
+
         },
 
 
@@ -54,7 +72,11 @@ Vue.component('createForm', {
 
             description: '',
 
-            deadline: ''
+            deadline: '',
+
+            notes: [],
+
+            currentNote: ''
         }
     },
 
@@ -66,15 +88,41 @@ Vue.component('createForm', {
             <input id="description" required type="text" placeholder="Описание" v-model="description">
             <label for="deadline">Дедлайн</label>
             <input id="deadline" required type="date" placeholder="Дедлайн" v-model="deadline">
+            <label>Действия (макс. 3)</label>
+            <div class="notes-section">
+                <div v-for="(note, index) in notes" :key="index" class="note-item">
+                    <span>{{ note.text }}</span>
+                    <button type="button" @click="removeNote(index)" class="remove-note">Удалить</button>
+                </div>
+                <div v-if="notes.length < 3" class="add-note">
+                    <input type="text" placeholder="Введите действик" v-model="currentNote">
+                    <button type="button" @click="addNote" :disabled="!currentNote.trim()">Добавить</button>
+                </div>
+                <p v-else class="note-limit">Достигнут лимит действий (3)</p>
+            </div>  
             <button type="submit">Создать</button>
+ 
         </form>
     `,
     methods: {
+        addNote() {
+            if (this.notes.length < 3 && this.currentNote.trim() !== '') {
+                this.notes.push({ text: this.currentNote, checked: false });
+                this.currentNote = '';
+            }
+        },
+
+        removeNote(index) {
+            this.notes.splice(index, 1);
+        },
+
         onSubmitCreateForm() {
             this.$emit('append-new-task', this.taskByData)
             this.title = '';
             this.description = '';
             this.deadline = '';
+            this.currentNote = '';
+            this.notes = [];
         }
     },
     computed: {
@@ -86,7 +134,8 @@ Vue.component('createForm', {
                 title: this.title,
                 description: this.description,
                 deadline: this.deadline,
-                reasonReturn: null
+                reasonReturn: null,
+                notes: this.notes
             }
         }
     }
@@ -181,28 +230,50 @@ Vue.component('task', {
                 <p>Описание: {{task.description}}</p>
                 <p>Дедлайн: {{task.deadline}}</p>
 
+                <ul>
+                    <li v-for="(note, noteIndex) in task.notes" :key="noteIndex">
+                        <note :note="note" :task-id="task.id" :note-index="noteIndex" @update-note="updateNote" :column-index="columnIndex"></note>
+                    </li>
+                </ul>
+
                 <p v-if="task.reasonReturn && columnIndex === 1">Причина возврата: {{task.reasonReturn}}</p>
 
                 <div v-if="columnIndex == 2">
-                    <button @click="moveToTargetColumn(1)">Вернуть</button>
+                    <button @click="moveToTargetColumn(1)" :disabled="!task.reasonReturn">Вернуть</button>
                     <input type="text" placeholder="Причина возврата" :value="task.reasonReturn" @input="updateReasonReturn($event.target.value)">
                 </div>
 
                 <button @click="removeTask" v-if="columnIndex == 0">Удалить</button>
 
-                <button v-if="showEditForm==false && columnIndex !== 3" @click="toggleEditForm">Изменить</button>
-                <button v-if="showEditForm==true && columnIndex !== 3" @click="toggleEditForm">Не изменять</button>
+                <button v-if="showEditForm==false && columnIndex < 3" @click="toggleEditForm">Изменить</button>
+                <button v-if="showEditForm==true && columnIndex < 3" @click="toggleEditForm">Не изменять</button>
 
-                <button @click="moveToTargetColumn(columnIndex+1)" v-if="columnIndex !== 3">Вперед</button>
+                <button @click="moveToTargetColumn(columnIndex+1)" v-if="columnIndex < 3">Вперед</button>
 
                 <b v-if="meetingDeadline && columnIndex == 3">Статус: {{meetingDeadline}}</b>
-                
+
+                <button @click="moveToTargetColumn(4)" v-if="columnIndex == 3 && columnIndex == 4">В архив</button>
+
                 <b>Редактировано: {{formattedUpdateAt}}</b>
             </div>
 
         </div>
     `,
     methods: {
+        updateNote(noteIndex, checked) {
+            const notes = this.task.notes;
+
+            if (noteIndex < 0 || noteIndex >= notes.length) return;
+
+            const updatedNotes = [...notes];
+            updatedNotes[noteIndex] = { ...notes[noteIndex], checked };
+
+            this.$emit('update-task', {
+                taskId: this.taskId,
+                field: 'notes',
+                value: updatedNotes
+            });
+        },
 
         updateReasonReturn(newReasonReturn) {
             this.$emit('update-task', {
@@ -225,7 +296,7 @@ Vue.component('task', {
             this.showEditForm = !this.showEditForm
         },
 
-        editTask(title, description, deadline) {
+        editTask(title, description, deadline, notes) {
             this.$emit('update-task', {
                 taskId: this.taskId,
                 field: 'title',
@@ -241,8 +312,13 @@ Vue.component('task', {
                 field: 'deadline',
                 value: deadline
             });
-            showEditForm = false;
-        }
+            this.$emit('update-task', {
+                taskId: this.taskId,
+                field: 'note',
+                value: notes
+            });
+            this.showEditForm = false;
+        },
 
     },
     computed: {
@@ -258,6 +334,43 @@ Vue.component('task', {
     }
 })
 
+Vue.component('note', {
+    props: {
+        note: {
+            type: Object,
+            required: true
+        },
+
+        columnIndex: {
+            type: Number,
+            required: true
+        },
+
+        noteIndex: {
+            type: Number,
+            required: true
+        }
+    },
+
+
+    template: `
+        <div class="note">
+            <div>
+                <input :disabled="columnIndex>2" type="checkbox" :checked="note.checked" @change="onChange">
+                <p>{{note.text}}</p>
+            </div>
+        </div>
+    `,
+
+    methods: {
+        onChange(e) {
+            this.$emit('update-note', this.noteIndex, e.target.checked)
+        }
+    },
+
+    computed: {
+    }
+})
 Vue.component('editForm', {
     props: {
         task: {
@@ -282,7 +395,11 @@ Vue.component('editForm', {
 
             description: '',
 
-            deadline: ''
+            deadline: '',
+
+            noteText: '',
+
+            notes: []
         }
     },
 
@@ -294,15 +411,21 @@ Vue.component('editForm', {
             <input id="description" required type="text" placeholder="Описание" v-model="description">
             <label v-if="columnIndex==0" for="deadline">Дедлайн</label>
             <input v-if="columnIndex==0" id="deadline" required type="date" placeholder="Дедлайн" v-model="deadline">
+
+            <label for="note">Действия</label>
+            <div v-for="(note, noteIndex) in notes" id="note">
+                <input id="noteText" required type="text" placeholder="текст действия" v-model="note.text">
+            </div>
             <button type="submit">Изменить</button>
         </form>
     `,
     methods: {
         onSubmitEditForm() {
-            this.$emit('edit-task', this.title, this.description, this.deadline);
+            this.$emit('edit-task', this.title, this.description, this.deadline, this.notes);
             this.title = '';
             this.description = '';
             this.deadline = '';
+            this.notes = [];
         }
     },
 
@@ -313,6 +436,7 @@ Vue.component('editForm', {
                     this.title = this.task.title;
                     this.description = this.task.description;
                     this.deadline = this.task.deadline;
+                    this.notes = this.task.notes;
                 }
             },
             immediate: true
@@ -323,6 +447,7 @@ Vue.component('editForm', {
                     this.title = newTask.title;
                     this.description = newTask.description;
                     this.deadline = newTask.deadline;
+                    this.notes = newTask.notes;
                 }
             },
             deep: true
@@ -333,6 +458,7 @@ Vue.component('editForm', {
 
     }
 })
+
 let app = new Vue({
     el: '#app',
     data: {
